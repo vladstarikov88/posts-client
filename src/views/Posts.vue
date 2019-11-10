@@ -5,9 +5,19 @@
     </template>
     <template v-else>
       <template v-for="post in posts">
-        <div :key="post._id">
-          <h3>{{ post.title }}</h3>
-          <p>{{ post.message }}</p>
+        <div
+          :key="post._id"
+          class="post"
+        >
+          <div
+            @click="deletePost(post._id)"
+            class="post-delete"
+          >×</div>
+          <header class="post-header">
+            <h3 class="post-title">{{ post.title }}</h3>
+            <p class="post-date">{{ post.date }}</p>
+          </header>
+          <p class="post-message">{{ post.message }}</p>
         </div>
       </template>
     </template>
@@ -40,6 +50,7 @@
 </template>
 
 <script>
+import dayjs from 'dayjs';
 import axios from '@/plugins/axios';
 
 export default {
@@ -56,16 +67,26 @@ export default {
   },
   methods: {
     loadPosts() {
-      this.isLoadingPosts = true;
-
       axios
         .get('/posts')
         .then((res) => {
-          this.posts = res.data;
+          this.posts = res.data.map((post) => {
+            const date = dayjs(post.date).format('MMM DD YYYY HH:mm');
+            return {
+              ...post,
+              date,
+            };
+          });
           this.isLoadingPosts = false;
+        });
+    },
+    deletePost(postId) {
+      axios
+        .delete(`/delete-post/${postId}`, {
+          params: { postId },
         })
-        .catch((error) => {
-          console.error(error);
+        .then(() => {
+          this.loadPosts();
         });
     },
     submit() {
@@ -77,9 +98,10 @@ export default {
       if (newPost.title && newPost.message) {
         axios
           .post('/add-post', newPost)
-          .then((res) => {
-            console.log(res);
+          .then(() => {
             this.loadPosts();
+            this.title = '';
+            this.message = '';
           });
       }
     },
@@ -88,6 +110,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+$dark: rgb(44, 62, 80);
+$dark-opacity: rgba(44, 62, 80, .5);
+
 .send-post-form {
   display: flex;
   flex-direction: column;
@@ -98,21 +123,19 @@ export default {
   .form-input {
     margin-bottom: 1rem;
     background-color: #fff;
-    border: 2px solid rgba(44, 62, 80, .5);
+    border: 2px solid $dark-opacity;
     padding: .5rem 1rem;
     font-size: 1rem;
     width: 20rem;
-    color: rgba(44, 62, 80, .5);
+    color: $dark-opacity;
     transition: all .2s;
     &:focus {
-      color: rgb(44, 62, 80);
+      color: $dark;
       outline: unset;
     }
     &:hover {
-      color: rgb(44, 62, 80);
+      color: $dark;
     }
-  }
-  input {
   }
 
   textarea {
@@ -124,7 +147,55 @@ export default {
     width: 10rem;
     &:hover {
       cursor: pointer;
-      background-color: rgba(0, 0, 0, .05)
+    }
+  }
+}
+
+.post {
+  width: 100%;
+  max-width: 40rem;
+  margin: 0 auto 1rem;
+  text-align: left;
+  padding: 1rem;
+  box-shadow: 0 8px 24px -9px $dark;
+  position: relative;
+  transition: all .2s;
+  &-header {
+    margin-bottom: 1rem;
+  }
+  &-title {
+    margin: unset;
+  }
+  &-date {
+    margin: unset;
+    color: $dark-opacity;
+    font-size: .8rem;
+  }
+  &-message {
+    margin: unset;
+  }
+  &-delete {
+    position: absolute;
+    right: 1rem;
+    top: 1rem;
+    padding: .4rem;
+    width: 1rem;
+    height: 1rem;
+    font-size: 1.4rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: $dark-opacity;
+    opacity: 0;
+    transition: all .2s;
+    &:hover {
+      cursor: pointer;
+      color: $dark;
+    }
+  }
+  &:hover {
+    .post-delete {
+      opacity: 1;
     }
   }
 }
